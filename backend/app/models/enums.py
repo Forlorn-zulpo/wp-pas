@@ -29,6 +29,27 @@ class ImportStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+class SitePlatform(str, enum.Enum):
+    SHOPIFY = "shopify"
+    WOOCOMMERCE = "woocommerce"
+    WORDPRESS = "wordpress"
+    GENERIC = "generic"
+
+
+class SiteStatus(str, enum.Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+
+
+class SiteProductStatus(str, enum.Enum):
+    BOUND = "bound"  # linked, never published
+    PENDING_REVIEW = "pending_review"
+    APPROVED = "approved"
+    PUBLISHED = "published"
+    UNPUBLISHED = "unpublished"
+    FAILED = "failed"
+
+
 class AuditAction(str, enum.Enum):
     CREATE = "create"
     UPDATE = "update"
@@ -37,3 +58,6 @@ class AuditAction(str, enum.Enum):
     BULK_UPDATE = "bulk_update"
     IMPORT = "import"
     LOGIN = "login"
+    BIND = "bind"
+    UNBIND = "unbind"
+    TEST_CONNECTION = "test_connection"

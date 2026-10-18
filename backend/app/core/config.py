@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
 
     JWT_SECRET_KEY: str = "CHANGE_ME_IN_PROD_this_is_a_dev_only_secret_key"
+
+    # Symmetric key used to encrypt site connection credentials at rest
+    # (Fernet key — 32 url-safe base64 bytes). Generate with:
+    #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Dev-only default below; a real deployment MUST override this, since
+    # anyone with the key can decrypt every site's stored credentials.
+    CREDENTIALS_ENCRYPTION_KEY: str = "zxUyM7jaoSTR5WBtqKqiud43n4cFW2F-sdRW_ZeU56M="
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7

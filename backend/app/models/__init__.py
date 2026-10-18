@@ -7,3 +7,9 @@ from app.models.user import User  # noqa: F401
 from app.models.product import Product, ProductVariant  # noqa: F401
 from app.models.asset import Asset  # noqa: F401
 from app.models.audit import AuditLog, ImportJob  # noqa: F401
+from app.models.site import Site  # noqa: F401
+from app.models.site_product import (  # noqa: F401
+    ExternalProductMapping,
+    SiteProduct,
+    SiteProductOverride,
+)

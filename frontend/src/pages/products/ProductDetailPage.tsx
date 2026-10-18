@@ -10,6 +10,7 @@ import {
   useUpdateProduct,
   useUploadAsset,
 } from "../../lib/products";
+import SiteBindingsSection from "./SiteBindingsSection";
 
 export default function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -200,6 +201,8 @@ export default function ProductDetailPage() {
           </div>
         )}
       </section>
+
+      <SiteBindingsSection productId={id} />
     </div>
   );
 }
