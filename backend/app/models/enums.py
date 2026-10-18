@@ -6,3 +6,34 @@ class UserRole(str, enum.Enum):
     OPERATOR = "operator"
     REVIEWER = "reviewer"
     READONLY = "readonly"
+
+
+class ProductStatus(str, enum.Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
+
+class AssetStatus(str, enum.Enum):
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class ImportStatus(str, enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    COMPLETED_WITH_ERRORS = "completed_with_errors"
+    FAILED = "failed"
+
+
+class AuditAction(str, enum.Enum):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    ARCHIVE = "archive"
+    BULK_UPDATE = "bulk_update"
+    IMPORT = "import"
+    LOGIN = "login"

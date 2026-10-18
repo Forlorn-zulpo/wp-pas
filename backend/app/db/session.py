@@ -11,6 +11,12 @@ class Base(DeclarativeBase):
     pass
 
 
+# Note: models must not be imported here (it would create a circular import,
+# since every model imports Base from this module). Anything that needs the
+# full mapped schema — app.main, migrations/env.py, tests/conftest.py —
+# imports `app.models` itself to register every model before first use.
+
+
 # Sync engine: used by Alembic migrations and Celery workers.
 sync_engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, future=True)
 SyncSessionLocal = sessionmaker(bind=sync_engine, autoflush=False, autocommit=False, future=True)

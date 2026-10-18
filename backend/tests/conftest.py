@@ -11,6 +11,7 @@ TEST_ASYNC_DB_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/app_t
 os.environ["ASYNC_DATABASE_URL"] = TEST_ASYNC_DB_URL
 os.environ["DATABASE_URL"] = "postgresql+psycopg2://postgres:postgres@localhost:5432/app_test_db"
 
+import app.models  # noqa: E402,F401  (registers every mapped model before Base.metadata is used)
 from app.db.session import Base  # noqa: E402
 from app.main import app  # noqa: E402
 

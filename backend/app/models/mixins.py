@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, Integer, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 
 class UUIDPKMixin:
@@ -27,5 +27,8 @@ class TimestampMixin:
 class VersionedMixin:
     """Optimistic locking: SQLAlchemy checks this column on every UPDATE."""
 
-    __mapper_args__ = {"version_id_col": "version"}
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    @declared_attr.directive
+    def __mapper_args__(cls):  # noqa: N805
+        return {"version_id_col": cls.__table__.c.version}
