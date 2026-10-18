@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ArchiveIcon, SearchIcon } from "lucide-react";
 import {
   STATUS_LABELS,
@@ -183,7 +184,11 @@ export default function ProductsPage() {
                     />
                   </td>
                   <td className="px-3 py-2 font-mono text-xs text-gray-600">{p.sku}</td>
-                  <td className="px-3 py-2 font-medium">{p.title}</td>
+                  <td className="px-3 py-2 font-medium">
+                    <Link to={`/app/products/${p.id}`} className="hover:underline">
+                      {p.title}
+                    </Link>
+                  </td>
                   <td className="px-3 py-2 text-gray-500">{p.category || "—"}</td>
                   <td className="px-3 py-2">
                     {p.currency} {p.price}

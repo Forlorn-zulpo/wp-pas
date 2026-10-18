@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "./api";
+import { apiRequest, getTokens } from "./api";
 
 export type ProductStatus = "draft" | "active" | "archived";
 
@@ -93,3 +93,143 @@ export const STATUS_LABELS: Record<ProductStatus, string> = {
   active: "上架",
   archived: "已归档",
 };
+
+export interface Variant {
+  id: string;
+  sku: string;
+  options: Record<string, string>;
+  price_override: string | null;
+  stock_quantity: number;
+  barcode: string;
+  version: number;
+}
+
+export interface Asset {
+  id: string;
+  storage_key: string;
+  original_filename: string;
+  content_type: string;
+  size_bytes: number;
+  width: number | null;
+  height: number | null;
+  position: number;
+  is_primary: boolean;
+  status: string;
+}
+
+export interface ProductDetail extends Product {
+  variants: Variant[];
+  assets: Asset[];
+}
+
+export function useProductQuery(id: string) {
+  return useQuery({
+    queryKey: ["products", "detail", id],
+    queryFn: () => apiRequest<ProductDetail>(`/products/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useUpdateProduct(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      apiRequest<ProductDetail>(`/products/${id}`, { method: "PATCH", body: payload }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["products", "detail", id] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
+export function assetFileUrl(assetId: string): string {
+  return `/api/v1/assets/${assetId}/file`;
+}
+
+export function useUploadAsset(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const tokens = getTokens();
+      const form = new FormData();
+      form.append("file", file);
+      const resp = await fetch(`/api/v1/products/${productId}/assets`, {
+        method: "POST",
+        headers: tokens ? { Authorization: `Bearer ${tokens.access_token}` } : {},
+        body: form,
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => null);
+        throw new Error(body?.error?.message ?? `上传失败 (${resp.status})`);
+      }
+      return resp.json() as Promise<Asset>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["products", "detail", productId] });
+    },
+  });
+}
+
+export function useSetPrimaryAsset(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (assetId: string) =>
+      apiRequest<Asset>(`/assets/${assetId}/primary`, { method: "POST" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["products", "detail", productId] });
+    },
+  });
+}
+
+export function useDeleteAsset(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (assetId: string) => apiRequest<void>(`/assets/${assetId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["products", "detail", productId] });
+    },
+  });
+}
+
+export interface ImportJob {
+  id: string;
+  filename: string;
+  status: string;
+  total_rows: number;
+  success_rows: number;
+  error_rows: number;
+  errors: { row: number; field: string; message: string }[];
+  created_at: string;
+}
+
+export function useImportsQuery() {
+  return useQuery({
+    queryKey: ["imports"],
+    queryFn: () => apiRequest<ImportJob[]>("/imports"),
+  });
+}
+
+export function useUploadCsvImport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const tokens = getTokens();
+      const form = new FormData();
+      form.append("file", file);
+      const resp = await fetch("/api/v1/imports", {
+        method: "POST",
+        headers: tokens ? { Authorization: `Bearer ${tokens.access_token}` } : {},
+        body: form,
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => null);
+        throw new Error(body?.error?.message ?? `导入失败 (${resp.status})`);
+      }
+      return resp.json() as Promise<ImportJob>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["imports"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}

@@ -4,11 +4,12 @@ import AppLayout from "./components/layout/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProductsPage from "./pages/products/ProductsPage";
+import ProductDetailPage from "./pages/products/ProductDetailPage";
+import ImportsPage from "./pages/imports/ImportsPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 const PLACEHOLDERS: { path: string; title: string; phase: string }[] = [
-  { path: "imports", title: "导入", phase: "阶段 2" },
-  { path: "images", title: "图片素材", phase: "阶段 2" },
+  { path: "images", title: "图片素材(独立素材库,目前通过商品详情页管理)", phase: "阶段 2 后续" },
   { path: "suppliers", title: "供应商", phase: "阶段 5" },
   { path: "collection-jobs", title: "采集任务", phase: "阶段 5" },
   { path: "ai/providers", title: "AI 服务商", phase: "阶段 5" },
@@ -31,6 +32,8 @@ export default function App() {
         <Route path="/app" element={<AppLayout />}>
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="products/:productId" element={<ProductDetailPage />} />
+          <Route path="imports" element={<ImportsPage />} />
           {PLACEHOLDERS.map(({ path, title, phase }) => (
             <Route key={path} path={path} element={<PlaceholderPage title={title} phase={phase} />} />
           ))}

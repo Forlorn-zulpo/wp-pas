@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     S3_BUCKET: str = "product-assets"
     S3_REGION: str = "us-east-1"
 
+    # Until real S3 credentials are provided, assets are written to local
+    # disk. The storage.py service hides this behind one interface so
+    # switching to S3 later is a one-line change, not a rewrite.
+    LOCAL_STORAGE_PATH: str = "./storage/assets"
+    MAX_UPLOAD_SIZE_BYTES: int = 15 * 1024 * 1024  # 15 MB
+    ALLOWED_IMAGE_CONTENT_TYPES: list[str] = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
 
