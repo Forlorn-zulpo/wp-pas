@@ -7,6 +7,7 @@ import ProductsPage from "./pages/products/ProductsPage";
 import ProductDetailPage from "./pages/products/ProductDetailPage";
 import ImportsPage from "./pages/imports/ImportsPage";
 import SitesPage from "./pages/sites/SitesPage";
+import PublicationsPage from "./pages/publications/PublicationsPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 const PLACEHOLDERS: { path: string; title: string; phase: string }[] = [
@@ -18,7 +19,6 @@ const PLACEHOLDERS: { path: string; title: string; phase: string }[] = [
   { path: "ai/task-policies", title: "AI 任务策略", phase: "阶段 5" },
   { path: "reviews", title: "审核中心", phase: "阶段 5" },
   { path: "site-products", title: "站点商品绑定(已整合进商品详情页)", phase: "阶段 3 完成" },
-  { path: "publications", title: "发布任务", phase: "阶段 4" },
   { path: "team/members", title: "团队成员", phase: "阶段 1 后续" },
   { path: "settings/audit-logs", title: "审计日志", phase: "阶段 2 后续" },
 ];
@@ -35,6 +35,7 @@ export default function App() {
           <Route path="products/:productId" element={<ProductDetailPage />} />
           <Route path="imports" element={<ImportsPage />} />
           <Route path="sites" element={<SitesPage />} />
+          <Route path="publications" element={<PublicationsPage />} />
           {PLACEHOLDERS.map(({ path, title, phase }) => (
             <Route key={path} path={path} element={<PlaceholderPage title={title} phase={phase} />} />
           ))}

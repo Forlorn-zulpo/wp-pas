@@ -50,6 +50,21 @@ class SiteProductStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+class PublicationJobStatus(str, enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"  # every item succeeded
+    PARTIAL = "partial"  # some items succeeded, some failed
+    FAILED = "failed"  # every item failed
+
+
+class PublicationItemStatus(str, enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
 class AuditAction(str, enum.Enum):
     CREATE = "create"
     UPDATE = "update"
@@ -61,3 +76,4 @@ class AuditAction(str, enum.Enum):
     BIND = "bind"
     UNBIND = "unbind"
     TEST_CONNECTION = "test_connection"
+    PUBLISH = "publish"

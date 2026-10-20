@@ -19,6 +19,7 @@ from app.schemas.site import (
     SiteProductResponse,
 )
 from app.services.audit import write_audit_log
+from app.services.preview import merge_product_with_override
 
 router = APIRouter(tags=["site-products"])
 
@@ -169,37 +170,17 @@ async def get_publication_preview(
     if product is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="内部商品不存在")
 
-    override = sp.override
-    overridden_fields: list[str] = []
-
-    def pick(field: str, override_value, base_value):
-        if override_value is not None and override_value != [] :
-            overridden_fields.append(field)
-            return override_value
-        return base_value
-
-    title = pick("title", override.title, product.title)
-    description = pick("description", override.description, product.description)
-    price = pick("price", override.price, product.price)
-    category = pick("category", override.category, product.category)
-    tags = pick("tags", override.tags or None, [])
-    asset_ids = (
-        [uuid.UUID(a) for a in override.asset_ids]
-        if override.asset_ids
-        else [a.id for a in product.assets]
-    )
-    if override.asset_ids:
-        overridden_fields.append("asset_ids")
+    merged = merge_product_with_override(product, sp.override)
 
     return PublicationPreviewResponse(
         site_product_id=sp.id,
         product_id=product.id,
         site_id=sp.site_id,
-        title=title,
-        description=description,
-        price=price,
-        category=category,
-        tags=tags,
-        asset_ids=asset_ids,
-        overridden_fields=overridden_fields,
+        title=merged.title,
+        description=merged.description,
+        price=merged.price,
+        category=merged.category,
+        tags=merged.tags,
+        asset_ids=merged.asset_ids,
+        overridden_fields=merged.overridden_fields,
     )

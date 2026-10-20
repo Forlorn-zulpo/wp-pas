@@ -1,9 +1,10 @@
-import { Eye, Link2, Unlink } from "lucide-react";
+import { Eye, Link2, Send, Unlink } from "lucide-react";
 import { useState } from "react";
 import {
   PLATFORM_LABELS,
   useBindProductToSite,
   usePublicationPreview,
+  usePublishSiteProduct,
   useSiteProductsQuery,
   useSitesQuery,
   useUnbindSiteProduct,
@@ -25,10 +26,12 @@ export default function SiteBindingsSection({ productId }: { productId: string }
   const bind = useBindProductToSite(productId);
   const unbind = useUnbindSiteProduct(productId);
   const updateOverride = useUpdateOverride(productId);
+  const publish = usePublishSiteProduct(productId);
   const [selectedSiteId, setSelectedSiteId] = useState("");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [overrideTitle, setOverrideTitle] = useState("");
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const { data: preview } = usePublicationPreview(previewingId);
 
@@ -66,6 +69,10 @@ export default function SiteBindingsSection({ productId }: { productId: string }
 
       {isLoading && <p className="text-sm text-gray-400">加载中...</p>}
 
+      {publishError && (
+        <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{publishError}</div>
+      )}
+
       {bindings && bindings.length === 0 && (
         <p className="py-4 text-center text-sm text-gray-400">该商品还未绑定到任何站点</p>
       )}
@@ -87,6 +94,20 @@ export default function SiteBindingsSection({ productId }: { productId: string }
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setPublishError(null);
+                        publish.mutate(
+                          { siteId: b.site_id, siteProductId: b.id },
+                          { onError: (err) => setPublishError(err instanceof Error ? err.message : "发布失败") }
+                        );
+                      }}
+                      disabled={publish.isPending}
+                      title="发布到该站点"
+                      className="rounded p-1 text-gray-400 hover:text-green-600 disabled:opacity-50"
+                    >
+                      <Send size={14} />
+                    </button>
                     <button
                       onClick={() => {
                         setPreviewingId(b.id);

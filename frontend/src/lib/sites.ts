@@ -135,6 +135,39 @@ export function usePublicationPreview(siteProductId: string | null) {
   });
 }
 
+export interface PublicationItem {
+  id: string;
+  site_product_id: string;
+  status: "pending" | "processing" | "success" | "failed";
+  attempt_count: number;
+  external_id: string | null;
+  error_message: string;
+}
+
+export interface PublicationJob {
+  id: string;
+  site_id: string;
+  status: "pending" | "processing" | "completed" | "partial" | "failed";
+  total_items: number;
+  success_items: number;
+  failed_items: number;
+  created_at: string;
+  items: PublicationItem[];
+}
+
+export function usePublishSiteProduct(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ siteId, siteProductId }: { siteId: string; siteProductId: string }) =>
+      apiRequest<PublicationJob>("/publications", {
+        method: "POST",
+        body: { site_id: siteId, site_product_ids: [siteProductId] },
+      }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ["site-products", { productId }] }),
+  });
+}
+
 export function useUpdateOverride(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({

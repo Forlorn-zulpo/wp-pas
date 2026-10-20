@@ -53,6 +53,7 @@ python-jose==3.5.0
 python-multipart==0.0.32
 PyYAML==6.0.3
 redis==8.1.0
+respx==0.23.1
 rsa==4.9.1
 s3transfer==0.19.2
 six==1.17.0

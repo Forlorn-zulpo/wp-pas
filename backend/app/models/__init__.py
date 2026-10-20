@@ -13,3 +13,4 @@ from app.models.site_product import (  # noqa: F401
     SiteProduct,
     SiteProductOverride,
 )
+from app.models.publication import PublicationJob, PublicationItem  # noqa: F401
