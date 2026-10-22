@@ -22,6 +22,7 @@ from app.schemas.product import (
     VariantResponse,
     VariantUpdate,
 )
+from app.services.ai.generation import GenerationError, generate_product_title
 from app.services.audit import write_audit_log
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -216,6 +217,26 @@ async def bulk_update_products(
     )
     await db.commit()
     return BulkUpdateResponse(updated_count=len(found_ids), not_found_ids=not_found_ids)
+
+
+@router.post("/{product_id}/ai/generate-title")
+async def ai_generate_title(
+    product_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(UserRole.ADMIN, UserRole.OPERATOR)),
+):
+    """Returns a suggested title only — does not modify the product. Applying
+    it is a separate PATCH call, so AI output always goes through the same
+    review a human edit would, never bypassing it."""
+    product = await _get_product_or_404(db, product_id)
+    try:
+        suggested_title = await generate_product_title(db, product)
+    except GenerationError as exc:
+        await db.commit()  # persist the failed AIUsageLog row even though generation failed
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+    await db.commit()
+    return {"suggested_title": suggested_title}
 
 
 @router.post(

@@ -36,10 +36,9 @@ class Product(UUIDPKMixin, TimestampMixin, VersionedMixin, Base):
     # their own column yet; kept separate from variant-level options.
     attributes: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
-    # No FK yet: the suppliers table is built in Phase 5. Column is reserved
-    # now so Phase 5 only needs to add a constraint, not a migration that
-    # touches every existing product row.
-    supplier_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    supplier_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"), nullable=True
+    )
 
     variants: Mapped[list["ProductVariant"]] = relationship(
         back_populates="product", cascade="all, delete-orphan"

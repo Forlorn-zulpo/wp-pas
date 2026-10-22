@@ -50,6 +50,14 @@ async def _run_items(db: AsyncSession, items: list[PublicationItem], site: Site)
             continue
 
         item.attempt_count += 1
+
+        if sp.status == SiteProductStatus.PENDING_REVIEW:
+            item.status = PublicationItemStatus.FAILED
+            item.error_message = "该商品处于待审核状态,审核通过前不能发布"
+            failed_count += 1
+            await db.flush()
+            continue
+
         item.status = PublicationItemStatus.PROCESSING
         result = await publish_one(db, sp, site)
 

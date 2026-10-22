@@ -14,3 +14,7 @@ from app.models.site_product import (  # noqa: F401
     SiteProductOverride,
 )
 from app.models.publication import PublicationJob, PublicationItem  # noqa: F401
+from app.models.supplier import Supplier  # noqa: F401
+from app.models.collection_job import CollectionJob  # noqa: F401
+from app.models.ai import AIProvider, AIModel, AITaskPolicy, AIUsageLog  # noqa: F401
+from app.models.review import ReviewItem  # noqa: F401
