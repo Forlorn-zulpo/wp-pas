@@ -9,11 +9,34 @@ from app.core.crypto import decrypt_credentials
 from app.models.ai import AIModel, AIProvider, AITaskPolicy, AIUsageLog
 from app.models.enums import AITaskType
 from app.models.product import Product
-from app.services.ai.anthropic_client import AIClientError, AnthropicClient
+from app.services.ai.anthropic_client import AnthropicClient
+from app.services.ai.base import AIClientError
+from app.services.ai.openai_compatible_client import DEFAULT_BASE_URLS, OpenAICompatibleClient
 
 
 class GenerationError(Exception):
     pass
+
+
+def _build_client(provider, model):
+    """Picks the right HTTP client for the provider's API shape. Anthropic
+    uses the Messages API; everything else here speaks the OpenAI-compatible
+    Chat Completions shape (DeepSeek, OPENAI, and OPENAI_COMPATIBLE for
+    self-hosted/local models all fit this one client)."""
+    api_key = decrypt_credentials(provider.encrypted_api_key)["api_key"]
+    provider_type = provider.provider_type.value
+
+    if provider_type == "anthropic":
+        return AnthropicClient(
+            api_key=api_key, model=model.model_id, base_url=provider.base_url or "https://api.anthropic.com"
+        )
+    if provider_type in ("deepseek", "openai", "openai_compatible"):
+        base_url = provider.base_url or DEFAULT_BASE_URLS.get(provider_type, "")
+        if not base_url:
+            raise GenerationError(f"服务商 '{provider_type}' 未配置 base_url,且没有默认值")
+        return OpenAICompatibleClient(api_key=api_key, model=model.model_id, base_url=base_url)
+
+    raise GenerationError(f"暂不支持的服务商类型: {provider_type}")
 
 
 async def generate_product_title(db: AsyncSession, product: Product) -> str:
@@ -42,11 +65,8 @@ async def generate_product_title(db: AsyncSession, product: Product) -> str:
     ).scalar_one_or_none()
     if provider is None or not provider.is_active or not provider.encrypted_api_key:
         raise GenerationError("AI 服务商未配置或未启用")
-    if provider.provider_type.value != "anthropic":
-        raise GenerationError(f"暂不支持的服务商类型: {provider.provider_type.value}(Phase 5 仅实现 Anthropic)")
 
-    api_key = decrypt_credentials(provider.encrypted_api_key)["api_key"]
-    client = AnthropicClient(api_key=api_key, model=model.model_id, base_url=provider.base_url or "https://api.anthropic.com")
+    client = _build_client(provider, model)
 
     system = policy.prompt_template or (
         "You write concise, accurate e-commerce product titles in the same "

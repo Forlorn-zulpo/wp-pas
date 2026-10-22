@@ -74,6 +74,7 @@ class AIProviderType(str, enum.Enum):
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
     GEMINI = "gemini"
+    DEEPSEEK = "deepseek"
     OPENAI_COMPATIBLE = "openai_compatible"  # local models / other vendors
 
 

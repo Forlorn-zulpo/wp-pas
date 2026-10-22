@@ -37,7 +37,7 @@ export function useCreateSupplier() {
 }
 
 // ---------- AI config ----------
-export type AIProviderType = "anthropic" | "openai" | "gemini" | "openai_compatible";
+export type AIProviderType = "anthropic" | "openai" | "gemini" | "deepseek" | "openai_compatible";
 export type AITaskType =
   | "product_recognition"
   | "title_generation"
@@ -52,6 +52,7 @@ export const PROVIDER_TYPE_LABELS: Record<AIProviderType, string> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
   gemini: "Gemini",
+  deepseek: "DeepSeek",
   openai_compatible: "OpenAI 兼容(本地/其它)",
 };
 

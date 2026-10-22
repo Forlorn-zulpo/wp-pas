@@ -105,6 +105,41 @@ def test_generate_title_without_policy_returns_clear_error(client):
     assert "未配置" in resp.json()["error"]["message"]
 
 
+def test_generate_title_with_deepseek_provider(client):
+    """DeepSeek speaks the OpenAI-compatible Chat Completions shape, not
+    Anthropic's Messages API — this verifies the dispatch in
+    _build_client actually routes to OpenAICompatibleClient and parses
+    that shape correctly (different JSON keys: choices[0].message.content,
+    usage.prompt_tokens/completion_tokens)."""
+    headers = auth_headers(client)
+    _, model, _ = _setup_provider_model_policy(client, headers, provider_type="deepseek")
+    # Point this provider's model at a DeepSeek model id by creating a
+    # second model+policy combo is unnecessary — _setup_provider_model_policy
+    # already created model_id "claude-haiku-5-5" under a deepseek provider,
+    # which is fine: the client dispatch only cares about provider_type.
+    product = client.post(
+        "/api/v1/products", json={"sku": "DS-SKU-1", "title": "旧标题", "price": "5"}, headers=headers
+    ).json()
+
+    with respx.mock(base_url="https://api.deepseek.com") as mock:
+        mock.post("/chat/completions").respond(
+            200,
+            json={
+                "choices": [{"message": {"content": "DeepSeek生成的标题"}}],
+                "usage": {"prompt_tokens": 80, "completion_tokens": 10},
+            },
+        )
+        resp = client.post(f"/api/v1/products/{product['id']}/ai/generate-title", headers=headers)
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["suggested_title"] == "DeepSeek生成的标题"
+
+    usage = client.get("/api/v1/ai/usage/summary", headers=headers).json()
+    title_gen = next(u for u in usage if u["task_type"] == "title_generation")
+    assert title_gen["total_input_tokens"] == 80
+    assert title_gen["total_output_tokens"] == 10
+
+
 def test_generate_title_api_failure_is_logged_and_reported(client):
     headers = auth_headers(client)
     _setup_provider_model_policy(client, headers)
