@@ -11,6 +11,8 @@ import {
   useUploadAsset,
 } from "../../lib/products";
 import SiteBindingsSection from "./SiteBindingsSection";
+import { Sparkles } from "lucide-react";
+import { useGenerateTitle } from "../../lib/phase5";
 
 export default function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -25,6 +27,8 @@ export default function ProductDetailPage() {
   const [form, setForm] = useState({ title: "", price: "", category: "", brand: "", description: "" });
   const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const generateTitle = useGenerateTitle();
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     if (product) {
@@ -83,12 +87,30 @@ export default function ProductDetailPage() {
         <h2 className="mb-3 text-sm font-semibold text-gray-700">基本信息</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="mb-1 block text-xs text-gray-500">标题</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-xs text-gray-500">标题</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setAiError(null);
+                  generateTitle.mutate(id, {
+                    onSuccess: (r) => setForm((f) => ({ ...f, title: r.suggested_title })),
+                    onError: (err) => setAiError(err instanceof Error ? err.message : "生成失败"),
+                  });
+                }}
+                disabled={generateTitle.isPending}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 disabled:opacity-50"
+              >
+                <Sparkles size={12} />
+                {generateTitle.isPending ? "生成中..." : "AI 生成建议"}
+              </button>
+            </div>
             <input
               className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-gray-900"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             />
+            {aiError && <p className="mt-1 text-xs text-red-600">{aiError}</p>}
           </div>
           <div>
             <label className="mb-1 block text-xs text-gray-500">价格</label>
