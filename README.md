@@ -80,7 +80,7 @@ erDiagram
 | 2 | 商品中心 | ✅ 完成(CRUD/分页/批量/规格/图片/CSV导入) |
 | 3 | 多站点基础 | ✅ 完成(Site/绑定/覆盖/凭据加密/连接测试/发布预览) |
 | 4 | 第一个发布连接器(WooCommerce) | ⚠️ 代码完成,但**只验证过 mock HTTP 层**,未连过真实 WooCommerce 店铺,见下方说明 |
-| 5 | 采集与 AI | ✅ 供应商/AI配置/审核流程/发布门禁完成;采集任务仅框架(无真实抓取器) |
+| 5 | 采集与 AI | ✅ 供应商/AI配置/审核流程/发布门禁完成;采集任务已有一个可运行的示范抓取器(见下方说明) |
 | 6 | 其他站点连接器(Shopify/WordPress) | ⏳ 未开始,需要真实目标站点/供应商 |
 | 7 | 稳定性与交付 | ⚠️ 部分完成:结构化日志、健康检查(含Redis)、pg_trgm搜索索引(2万行实测30ms→1.3ms)、部署/备份/故障排查文档已完成;测试覆盖率、负载测试、监控告警接入尚未做 |
 
@@ -92,6 +92,14 @@ erDiagram
 - 自动化测试:`backend/tests/test_auth.py` 共 7 个用例,全部通过(`pytest -v` 结果见 CI 日志/终端输出)
 - 前端:登录页 + 受保护路由 + 侧边栏布局骨架,已通过 `tsc --noEmit` 和 `vite build`,并与后端真实联调验证(bootstrap-admin → login → /auth/me 全链路通过 Vite 代理跑通)
 - 其余业务模块页面目前是**明确标注"未实现"的占位页**,不展示虚构数据,等待阶段 2+
+
+### 采集器诚实说明
+
+`backend/app/services/collectors/` 下有一个通用的"静态页面解析"基类(`HttpStaticCollector`,HTTP + BeautifulSoup,带限流和重试)和一个具体实现 `BooksToScrapeCollector`,目标是 `books.toscrape.com`——这是一个专门开放给人练习爬虫的沙盒网站(首页写着"We love being scraped!"),不是我们真正要进货的供应商,只是用来**把整条采集链路(建供应商→建采集任务→解析列表页/详情页→去重→生成草稿商品)跑通并测试**。
+
+选择器（`product_pod`、`price_color`、`instock availability`、`table.table-striped` 等)是按这个网站真实、公开、多年未变的 HTML 结构写的,不是编的。但沙箱本身的出网白名单不包含这个域名,所以解析逻辑的测试(`tests/test_collectors.py`)用的是**从真实页面抓下来的数据重建的固件 HTML**,采集任务的端到端执行测试(`tests/test_collection_jobs.py`)用 respx 把 HTTP 层接到这些固件上——**真实的网络请求这一步,在这个会话里从没有实际发生过**,只有在你自己的机器(有正常出网权限)上跑起来才会真的连上 books.toscrape.com。
+
+等你给了真实供应商目标,接入方式是:写一个新的 `XxxCollector(HttpStaticCollector)` 子类,在 `collection_jobs.py` 的 `COLLECTOR_REGISTRY` 里注册一下,其它代码(任务创建、去重、生成草稿商品、错误记录)都不用改。
 
 ### 阶段 4 诚实说明(重要)
 
