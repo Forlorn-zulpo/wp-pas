@@ -43,6 +43,9 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
+    # Empty by default = Sentry is disabled (see app/core/monitoring.py).
+    SENTRY_DSN: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
