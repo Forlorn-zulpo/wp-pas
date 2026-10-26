@@ -40,6 +40,30 @@ def test_bind_product_to_site_and_duplicate_rejected(client):
     assert dup.status_code == 409
 
 
+def test_bind_requires_existing_product_and_site(client):
+    headers = auth_headers(client)
+    product = _create_product(client, headers)
+    site = _create_site(client, headers)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+
+    missing_product = client.post(
+        "/api/v1/site-products", json={"product_id": fake_id, "site_id": site["id"]}, headers=headers
+    )
+    assert missing_product.status_code == 404
+
+    missing_site = client.post(
+        "/api/v1/site-products", json={"product_id": product["id"], "site_id": fake_id}, headers=headers
+    )
+    assert missing_site.status_code == 404
+
+
+def test_get_site_product_not_found(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.get(f"/api/v1/site-products/{fake_id}", headers=headers)
+    assert resp.status_code == 404
+
+
 def test_override_does_not_mutate_internal_product_or_other_site(client):
     headers = auth_headers(client)
     product = _create_product(client, headers)

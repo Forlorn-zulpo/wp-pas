@@ -46,6 +46,26 @@ def test_credentials_are_actually_encrypted_in_the_database(client):
     assert "ck_test" not in raw  # plaintext key must not appear anywhere in the stored blob
 
 
+def test_list_and_get_site(client):
+    headers = auth_headers(client)
+    site = _create_site(client, headers)
+
+    listed = client.get("/api/v1/sites", headers=headers)
+    assert listed.status_code == 200
+    assert any(s["id"] == site["id"] for s in listed.json())
+
+    fetched = client.get(f"/api/v1/sites/{site['id']}", headers=headers)
+    assert fetched.status_code == 200
+    assert fetched.json()["id"] == site["id"]
+
+
+def test_get_site_not_found(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.get(f"/api/v1/sites/{fake_id}", headers=headers)
+    assert resp.status_code == 404
+
+
 def test_only_admin_can_create_site(client):
     admin_headers = auth_headers(client)
     client.post(

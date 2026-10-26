@@ -122,6 +122,40 @@ def test_collection_job_rerun_skips_already_collected_sku(client):
     assert products["total"] == 1  # still just one — no duplicate
 
 
+def test_collection_job_total_fetch_failure_marks_job_failed(client):
+    """When the very first fetch (the listing page) fails entirely, the
+    collector raises CollectorError and the job must be marked FAILED with
+    the error recorded — not silently left RUNNING or COMPLETED."""
+    headers = auth_headers(client)
+    supplier = client.post(
+        "/api/v1/suppliers", json={"name": "Total Failure Demo"}, headers=headers
+    ).json()
+    start_url = "https://books.toscrape.com/catalogue/category/books/nonexistent_999/index.html"
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(start_url).mock(return_value=Response(404, text="not found"))
+        resp = client.post(
+            "/api/v1/collection-jobs",
+            json={
+                "supplier_id": supplier["id"],
+                "target_config": {"collector": "books_toscrape", "start_url": start_url, "max_pages": 1},
+            },
+            headers=headers,
+        )
+
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["status"] == "failed"
+    assert len(body["errors"]) == 1
+
+
+def test_get_collection_job_not_found(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.get(f"/api/v1/collection-jobs/{fake_id}", headers=headers)
+    assert resp.status_code == 404
+
+
 def test_collection_job_without_registered_collector_stays_pending(client):
     """A target_config that doesn't name a registered collector must not
     silently fake success — it stays PENDING for a human to notice."""

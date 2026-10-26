@@ -17,6 +17,30 @@ def _setup_binding(client, headers):
     return product, site, sp
 
 
+def test_request_review_requires_existing_binding(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.post("/api/v1/reviews", json={"site_product_id": fake_id}, headers=headers)
+    assert resp.status_code == 404
+
+
+def test_reject_already_decided_review_conflicts(client):
+    headers = auth_headers(client)
+    _, _, sp = _setup_binding(client, headers)
+    review = client.post("/api/v1/reviews", json={"site_product_id": sp["id"]}, headers=headers).json()
+    client.post(f"/api/v1/reviews/{review['id']}/reject", json={}, headers=headers)
+
+    again = client.post(f"/api/v1/reviews/{review['id']}/reject", json={}, headers=headers)
+    assert again.status_code == 409
+
+
+def test_decide_review_not_found(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.post(f"/api/v1/reviews/{fake_id}/approve", json={}, headers=headers)
+    assert resp.status_code == 404
+
+
 def test_request_review_blocks_duplicate_pending(client):
     headers = auth_headers(client)
     _, _, sp = _setup_binding(client, headers)

@@ -236,6 +236,120 @@ def test_retry_failed_only_touches_failed_items(client):
     assert bad_detail["status"] == "published"
 
 
+def test_publish_requires_existing_site(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.post(
+        "/api/v1/publications", json={"site_id": fake_id, "site_product_ids": [fake_id]}, headers=headers
+    )
+    assert resp.status_code == 404
+
+
+def test_publish_rejects_bindings_not_belonging_to_site(client):
+    headers = auth_headers(client)
+    product = _create_product(client, headers)
+    site_a = _create_woocommerce_site(client, headers, base_url="https://a.example.com")
+    site_b = _create_woocommerce_site(client, headers, base_url="https://b.example.com")
+    sp_on_a = _bind(client, headers, product["id"], site_a["id"])
+
+    resp = client.post(
+        "/api/v1/publications",
+        json={"site_id": site_b["id"], "site_product_ids": [sp_on_a["id"]]},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_get_publication_job_not_found(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.get(f"/api/v1/publications/{fake_id}", headers=headers)
+    assert resp.status_code == 404
+
+
+def test_retry_failed_with_no_failures_is_a_noop(client):
+    headers = auth_headers(client)
+    product = _create_product(client, headers, sku="NOOP-SKU")
+    site = _create_woocommerce_site(client, headers)
+    sp = _bind(client, headers, product["id"], site["id"])
+
+    with respx.mock(base_url=WC_BASE, assert_all_called=False) as mock:
+        mock.get("/products", params={"sku": "NOOP-SKU"}).respond(200, json=[])
+        mock.post("/products").respond(201, json={"id": 1, "sku": "NOOP-SKU"})
+        created = client.post(
+            "/api/v1/publications",
+            json={"site_id": site["id"], "site_product_ids": [sp["id"]]},
+            headers=headers,
+        ).json()
+
+    assert created["status"] == "completed"
+
+    retried = client.post(f"/api/v1/publications/{created['id']}/retry-failed", headers=headers)
+    assert retried.status_code == 200
+    assert retried.json()["status"] == "completed"
+    assert retried.json()["success_items"] == 1
+
+
+def test_publish_to_shopify_site_fails_loudly_not_silently(client):
+    """No Shopify connector exists yet (Phase 6) — publishing to one must
+    fail with a clear per-item error, never silently report success."""
+    headers = auth_headers(client)
+    product = _create_product(client, headers, sku="SHOPIFY-SKU")
+    site = client.post(
+        "/api/v1/sites",
+        json={"name": "未实现的Shopify站", "platform": "shopify", "base_url": "https://shop.example.com"},
+        headers=headers,
+    ).json()
+    sp = _bind(client, headers, product["id"], site["id"])
+
+    resp = client.post(
+        "/api/v1/publications", json={"site_id": site["id"], "site_product_ids": [sp["id"]]}, headers=headers
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["status"] == "failed"
+    assert "暂无可用连接器" in body["items"][0]["error_message"]
+
+
+def test_publish_without_site_credentials_fails_clearly(client):
+    headers = auth_headers(client)
+    product = _create_product(client, headers, sku="NO-CREDS-SKU")
+    site = client.post(
+        "/api/v1/sites",
+        json={"name": "无凭据站", "platform": "woocommerce", "base_url": "https://nocreds.example.com"},
+        headers=headers,
+    ).json()
+    sp = _bind(client, headers, product["id"], site["id"])
+
+    resp = client.post(
+        "/api/v1/publications", json={"site_id": site["id"], "site_product_ids": [sp["id"]]}, headers=headers
+    )
+    body = resp.json()
+    assert body["status"] == "failed"
+    assert "未配置访问凭据" in body["items"][0]["error_message"]
+
+
+def test_publish_with_incomplete_credentials_fails_clearly(client):
+    headers = auth_headers(client)
+    product = _create_product(client, headers, sku="BAD-CREDS-SKU")
+    site = client.post(
+        "/api/v1/sites",
+        json={
+            "name": "凭据不全的站", "platform": "woocommerce", "base_url": "https://partial.example.com",
+            "credentials": {"key": "only_a_key_no_secret"},
+        },
+        headers=headers,
+    ).json()
+    sp = _bind(client, headers, product["id"], site["id"])
+
+    resp = client.post(
+        "/api/v1/publications", json={"site_id": site["id"], "site_product_ids": [sp["id"]]}, headers=headers
+    )
+    body = resp.json()
+    assert body["status"] == "failed"
+    assert "缺少 consumer key/secret" in body["items"][0]["error_message"]
+
+
 def test_only_admin_or_operator_can_publish(client):
     admin_headers = auth_headers(client)
     client.post(

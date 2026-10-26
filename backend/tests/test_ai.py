@@ -61,6 +61,74 @@ def test_task_policy_rejects_model_without_declared_vision_capability(client):
     assert "视觉" in resp.json()["error"]["message"]
 
 
+def test_create_model_requires_existing_provider(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.post(
+        "/api/v1/ai/models", json={"provider_id": fake_id, "model_id": "x"}, headers=headers
+    )
+    assert resp.status_code == 404
+
+
+def test_create_model_duplicate_model_id_under_same_provider_rejected(client):
+    headers = auth_headers(client)
+    provider, _, _ = _setup_provider_model_policy(client, headers)
+    dup = client.post(
+        "/api/v1/ai/models",
+        json={"provider_id": provider["id"], "model_id": "claude-haiku-5-5"},
+        headers=headers,
+    )
+    assert dup.status_code == 409
+
+
+def test_create_task_policy_requires_existing_model(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.post(
+        "/api/v1/ai/task-policies", json={"task_type": "title_generation", "model_id": fake_id}, headers=headers
+    )
+    assert resp.status_code == 404
+
+
+def test_task_policy_rejects_model_without_declared_image_generation_capability(client):
+    headers = auth_headers(client)
+    _, model, _ = _setup_provider_model_policy(client, headers)
+    resp = client.post(
+        "/api/v1/ai/task-policies",
+        json={"task_type": "image_generation", "model_id": model["id"]},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert "图片生成" in resp.json()["error"]["message"]
+
+
+def test_update_task_policy_optimistic_lock(client):
+    headers = auth_headers(client)
+    _, _, policy = _setup_provider_model_policy(client, headers)
+
+    updated = client.patch(
+        f"/api/v1/ai/task-policies/{policy['id']}",
+        json={"version": 1, "max_tokens": 2048, "is_active": False},
+        headers=headers,
+    )
+    assert updated.status_code == 200
+    assert updated.json()["max_tokens"] == 2048
+    assert updated.json()["is_active"] is False
+    assert updated.json()["version"] == 2
+
+    stale = client.patch(
+        f"/api/v1/ai/task-policies/{policy['id']}", json={"version": 1, "max_tokens": 1}, headers=headers
+    )
+    assert stale.status_code == 409
+
+
+def test_update_task_policy_not_found(client):
+    headers = auth_headers(client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    resp = client.patch(f"/api/v1/ai/task-policies/{fake_id}", json={"version": 1}, headers=headers)
+    assert resp.status_code == 404
+
+
 def test_generate_title_success_and_usage_logged(client):
     headers = auth_headers(client)
     _setup_provider_model_policy(client, headers)

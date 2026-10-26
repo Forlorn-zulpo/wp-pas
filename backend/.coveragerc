@@ -1,0 +1,5 @@
+[run]
+concurrency = thread, greenlet
+source = app
+omit =
+    app/main.py
