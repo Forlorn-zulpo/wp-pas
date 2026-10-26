@@ -5,6 +5,9 @@ import app.models  # noqa: F401  (registers every mapped model before first use)
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
+from app.core.logging_config import configure_logging
+
+configure_logging()
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 

@@ -116,4 +116,9 @@ def test_refresh_token_issues_new_access_token(client):
 def test_health_endpoint(client):
     resp = client.get("/api/v1/health")
     assert resp.status_code == 200
-    assert resp.json()["database"] is True
+    body = resp.json()
+    assert body["database"] is True
+    # Redis is pinged for real here, not stubbed — this sandbox runs a real
+    # redis-server alongside Postgres for the test suite.
+    assert body["redis"] is True
+    assert body["status"] == "ok"
